@@ -1,67 +1,222 @@
 /*
- * Copyright (c) 2021 Rafael Yumagulov
+ * DAO 42 -- keymap for a Sway / tmux / Neovim workflow.
  *
- * SPDX-License-Identifier: MIT
+ * Keeps the 44-binding matrix shape of the original keymap: positions 0 and 13
+ * are non-physical padding. Do not remove them.
+ *
+ * Key positions
+ *    0   1   2   3   4   5   6  |   7   8   9  10  11  12  13
+ *       14  15  16  17  18  19  |  20  21  22  23  24  25
+ *       26  27  28  29  30  31  |  32  33  34  35  36  37
+ *               38  39  40      |  41  42  43
  */
 
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
 #include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/outputs.h>
 
-#define DEF 0
-#define LWR 1
-#define RSE 2
-#define ADJ 3
+#define BASE 0
+#define WM   1
+#define SYM  2
+#define SYS  3
 
-&lt { quick_tap_ms = <200>; };
-&mt { quick_tap_ms = <200>; };
-
-/ {
-    chosen {
-        zmk,physical_layout = &dao_crkbd_layout;
-        // zmk,physical_layout = &dao_full_layout;
-    };
-};
+#define LEFT_KEYS   1  2  3  4  5  6 14 15 16 17 18 19 26 27 28 29 30 31
+#define RIGHT_KEYS  7  8  9 10 11 12 20 21 22 23 24 25 32 33 34 35 36 37
+#define THUMBS     38 39 40 41 42 43
 
 / {
+        behaviors {
+                /*
+                 * Home row mods. Ctrl and Super also live on the thumbs, so these
+                 * are the cross-hand alternative rather than the only route.
+                 * A hold only resolves when the next key is on the other hand or
+                 * on a thumb, which kills almost every same-hand-roll misfire.
+                 */
+                hml: home_row_mod_left {
+                        compatible = "zmk,behavior-hold-tap";
+                        #binding-cells = <2>;
+                        flavor = "balanced";
+                        tapping-term-ms = <280>;
+                        quick-tap-ms = <175>;
+                        require-prior-idle-ms = <150>;
+                        bindings = <&kp>, <&kp>;
+                        hold-trigger-key-positions = <RIGHT_KEYS THUMBS>;
+                        hold-trigger-on-release;
+                };
+
+                hmr: home_row_mod_right {
+                        compatible = "zmk,behavior-hold-tap";
+                        #binding-cells = <2>;
+                        flavor = "balanced";
+                        tapping-term-ms = <280>;
+                        quick-tap-ms = <175>;
+                        require-prior-idle-ms = <150>;
+                        bindings = <&kp>, <&kp>;
+                        hold-trigger-key-positions = <LEFT_KEYS THUMBS>;
+                        hold-trigger-on-release;
+                };
+        };
+
+        /*
+         * Combos, base layer only.
+         *
+         * None of these pairs touches a home row mod key (A S D F / J K L ;),
+         * so a combo can never be confused with a modifier chord, and holding
+         * a mod never risks firing one.
+         *
+         *   Y/H/N  right index column  ->  [  ]
+         *   T/G/B  left index column   ->  -  =
+         *   M , .  bottom row          ->  `  '
+         *   X + C                      ->  caps word
+         */
+        combos {
+                compatible = "zmk,combos";
+
+                combo_lbkt {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <7 20>;
+                        layers = <BASE>;
+                        bindings = <&kp LBKT>;
+                };
+                combo_rbkt {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <20 32>;
+                        layers = <BASE>;
+                        bindings = <&kp RBKT>;
+                };
+                combo_minus {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <6 19>;
+                        layers = <BASE>;
+                        bindings = <&kp MINUS>;
+                };
+                combo_equal {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <19 31>;
+                        layers = <BASE>;
+                        bindings = <&kp EQUAL>;
+                };
+                combo_grave {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <33 34>;
+                        layers = <BASE>;
+                        bindings = <&kp GRAVE>;
+                };
+                combo_sqt {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <34 35>;
+                        layers = <BASE>;
+                        bindings = <&kp SQT>;
+                };
+                combo_caps_word {
+                        timeout-ms = <50>;
+                        require-prior-idle-ms = <125>;
+                        key-positions = <28 29>;
+                        layers = <BASE>;
+                        bindings = <&caps_word>;
+                };
+        };
+
+        conditional_layers {
+                compatible = "zmk,conditional-layers";
+                system {
+                        if-layers = <WM SYM>;
+                        then-layer = <SYS>;
+                };
+        };
+
         keymap {
                 compatible = "zmk,keymap";
 
-                default_layer {
-                        display-name = "MAIN";
+                /*
+                 * BASE
+                 *   Thumbs carry Ctrl and Super, so ctrl+b, ctrl+c, super+w and
+                 *   super+space are all two-key chords without touching a layer.
+                 *   \ sits on the right pinky home row: it is the Neovim localleader.
+                 *   Space and Enter are plain taps -- Space is the Neovim leader.
+                 */
+                base_layer {
                         bindings = <
-          &mt LGUI RBKT     &kp Q   &kp W   &kp E         &kp R             &kp T         &kp Y         &kp U            &kp I         &kp O     &kp P      &kp LBKT
-          &mt LCTRL GRAVE   &kp A   &kp S   &kp D         &kp F             &kp G         &kp H         &kp J            &kp K         &kp L     &kp SEMI   &mt RCTRL SQT
-          &mt LALT MINUS    &kp Z   &kp X   &kp C         &kp V             &kp B         &kp N         &kp M            &kp COMMA     &kp DOT   &kp FSLH   &mt RALT BSLH
-                                            &lt RSE TAB   &mt LSHFT SPACE   &lt LWR RET   &lt LWR ESC   &mt RSHFT BSPC   &lt RSE DEL
-                        >;
-                };
-                lower_layer {
-                        display-name = "SYM";
-                        bindings = <
-          &mt LGUI F1      &kp F2     &kp F3   &kp F4        &kp F5     &kp F6      &kp F7      &kp F8     &kp F9        &kp F10    &kp F11    &kp F12
-          &mt LCTRL PLUS   &kp EXCL   &kp AT   &kp HASH      &kp DLLR   &kp PRCNT   &kp CARET   &kp AMPS   &kp STAR      &kp LPAR   &kp RPAR   &mt RCTRL MINUS
-          &mt LALT EQUAL   &kp N1     &kp N2   &kp N3        &kp N4     &kp N5      &kp N6      &kp N7     &kp N8        &kp N9     &kp N0     &kp RALT
-                                               &lt ADJ TAB   &trans     &trans      &trans      &trans     &lt ADJ DEL
+  &none   &kp ESC     &kp Q          &kp W          &kp E           &kp R           &kp T       &kp Y     &kp U           &kp I           &kp O          &kp P             &kp BSPC   &none
+          &kp TAB     &hml LGUI A    &hml LALT S    &hml LCTRL D    &hml LSHFT F    &kp G       &kp H     &hmr RSHFT J    &hmr RCTRL K    &hmr LALT L    &hmr RGUI SEMI    &kp BSLH
+          &kp LSHFT   &kp Z          &kp X          &kp C           &kp V           &kp B       &kp N     &kp M           &kp COMMA       &kp DOT        &kp FSLH          &kp RSHFT
+                                                    &kp LCTRL       &mo WM          &kp SPACE   &kp RET   &mo SYM         &kp LGUI
                         >;
                 };
 
-                raise_layer {
-                        display-name = "NUM";
+                /*
+                 * WM  (hold left middle thumb) -- sway workspaces
+                 *
+                 *   Press where the symbol itself lives:
+                 *     digits, [ ] ` - = '  -> their SYM positions
+                 *     , . \               -> their BASE positions
+                 *     ; t y i              -> their column, first free row below
+                 *                             (the ; slot itself is taken by ')
+                 *
+                 *   Nothing is overridden here: both Shifts, Space, Enter, Ctrl
+                 *   and Super fall through to BASE, so "move container to
+                 *   workspace" is just Shift + the same key.
+                 *
+                 *     esc   4   5   6   7   8  |  11  12  13  14   1   bspc
+                 *     tab  16  17  20 scr  15  |  21   .  18   .   10  19
+                 *     sft   lk  .  rld view 22 | dsm flt   2   3    9  sft
+                 */
+                wm_layer {
                         bindings = <
-          &mt LGUI KP_NUM   &kp KP_SLASH      &kp KP_N7   &kp KP_N8   &kp KP_N9   &kp KP_MINUS   &kp C_VOL_UP   &kp HOME   &kp PSCRN   &kp PG_UP   &kp SLCK          &kp CLCK
-          &mt LCTRL EQUAL   &kp KP_MULTIPLY   &kp KP_N4   &kp KP_N5   &kp KP_N6   &kp KP_PLUS    &kp C_MUTE     &kp LEFT   &kp UP      &kp RIGHT   &kp INS           &mt RCTRL  K_APP
-          &kp LALT          &kp KP_N0         &kp KP_N1   &kp KP_N2   &kp KP_N3   &kp KP_DOT     &kp C_VOL_DN   &kp END    &kp DOWN    &kp PG_DN   &kp PAUSE_BREAK   &kp RALT
-                                                          &trans      &trans      &lt ADJ RET    &lt ADJ ESC    &trans     &trans
+  &none   &trans   &kp LG(N1)     &kp LG(N2)     &kp LG(N3)      &kp LG(N4)      &kp LG(N5)     &kp LG(N6)  &kp LG(N7)  &kp LG(N8)      &kp LG(N9)    &kp LG(N0)    &trans          &none
+          &trans   &kp LG(LBKT)   &kp LG(RBKT)   &kp LG(GRAVE)   &kp LG(MINUS)   &kp LG(EQUAL)  &kp LG(Y)   &none       &kp LG(I)       &none         &kp LG(SQT)   &kp LG(BSLH)
+          &trans   &kp LG(Z)      &none          &kp LG(LS(C))   &kp LG(LS(V))   &kp LG(T)      &kp LG(N)   &kp LG(M)   &kp LG(COMMA)   &kp LG(DOT)   &kp LG(SEMI)  &trans
+                                                 &trans          &trans          &trans         &trans      &trans      &trans
                         >;
                 };
-                adjust_layer {
-                        display-name = "ADJ";
+
+                /*
+                 * SYM  (hold right middle thumb) -- numbers, symbols, arrows
+                 *
+                 *   Digits run straight across, so Shift+digit still gives
+                 *   ! through ). Only unshifted forms need slots: [ ] ` - = '
+                 *   ( { } _ + ~ are Shift + those. Arrows on h j k l.
+                 *   Caps word and Delete sit on the two index-stretch keys
+                 *   either side of the split, under digits 5 and 6.
+                 *   Outer columns are &trans: Esc, Tab, both Shifts, Backspace
+                 *   and \ keep their base meaning on every layer.
+                 *
+                 *     esc   1   2   3   4   5  |   6   7   8   9   0   bspc
+                 *     tab   [   ]   `   -   =  |   <   v   ^   >   '    \
+                 *     sft   .   .   .   .   cw |  del  .   .   .   .    sft
+                 */
+                sym_layer {
                         bindings = <
- &bootloader   &studio_unlock &none          &none          &none          &none          &none          &none          &none          &none          &studio_unlock &bootloader
- &bt BT_CLR    &bt BT_SEL 0   &bt BT_SEL 1   &bt BT_SEL 2   &bt BT_SEL 3   &bt BT_SEL 4   &bt BT_SEL 4   &bt BT_SEL 3   &bt BT_SEL 2   &bt BT_SEL 1   &bt BT_SEL 0   &bt BT_CLR
- &sys_reset    &none          &none          &none          &none          &none          &none          &none          &none          &none          &none          &sys_reset
-                                             &trans         &none          &trans         &trans         &none          &trans
+  &none   &trans   &kp N1     &kp N2    &kp N3      &kp N4       &kp N5        &kp N6     &kp N7     &kp N8    &kp N9      &kp N0      &trans     &none
+          &trans   &kp LBKT   &kp RBKT  &kp GRAVE   &kp MINUS    &kp EQUAL     &kp LEFT   &kp DOWN   &kp UP    &kp RIGHT   &kp SQT     &trans
+          &trans   &none      &none     &none       &none        &caps_word    &kp DEL    &none      &none     &none       &none       &trans
+                                        &trans      &trans       &trans        &trans     &trans     &trans
+                        >;
+                };
+
+                /*
+                 * SYS  (hold both layer thumbs) -- F-keys, radio, media, firmware
+                 *
+                 *   bootloader and sys_reset sit on both halves on purpose: on a
+                 *   split each half resets itself, so each needs its own key.
+                 *
+                 *     boot  F1  F2  F3  F4  F5  |  F6   F7   F8   F9  F10  boot
+                 *     btclr bt0 bt1 bt2 bt3 bt4 | tog  prsc  .   vol- vol+ mute
+                 *     reset F11 F12 br- br+ caps| prev play next pgdn pgup reset
+                 */
+                system_layer {
+                        bindings = <
+  &none   &bootloader   &kp F1         &kp F2         &kp F3          &kp F4          &kp F5         &kp F6          &kp F7        &kp F8         &kp F9         &kp F10        &bootloader   &none
+          &bt BT_CLR    &bt BT_SEL 0   &bt BT_SEL 1   &bt BT_SEL 2    &bt BT_SEL 3    &bt BT_SEL 4   &out OUT_TOG    &kp PSCRN     &none          &kp C_VOL_DN   &kp C_VOL_UP   &kp C_MUTE
+          &sys_reset    &kp F11        &kp F12        &kp C_BRI_DN    &kp C_BRI_UP    &kp CAPS       &kp C_PREV      &kp C_PP      &kp C_NEXT     &kp PG_DN      &kp PG_UP      &sys_reset
+                                                      &trans          &trans          &none          &none           &trans        &trans
                         >;
                 };
         };
